@@ -3,8 +3,8 @@
 
 import time
 
-import zenframe2.starter as frame
-from zenframe2.argparse import ArgumentParser
+from zenframe2.starter import invoke
+import zenframe2.argparse
 
 from PyQt5 import QtWidgets
 
@@ -12,7 +12,18 @@ TEMPLATE = """
 #!/usr/bin/env python3
 #coding: utf-8
 
-import zenframe2
+from zenframe2.animate import create_animate_thread
+from zenframe2.unbound import unbound_worker_bottom_half
+
+i = 0
+def animate(*args, **kwargs):
+    global i
+    print("animate ", i)
+    i += 1
+
+print('zenframe2')
+create_animate_thread(animate, step=1, debug_mode=True)
+unbound_worker_bottom_half()
 """
 
 
@@ -43,7 +54,7 @@ class TestWidget(QtWidgets.QWidget):
 
 
 def console_options_handle():
-    parser = ArgumentParser()
+    parser = zenframe2.argparse.ArgumentParser()
     pargs = parser.parse_args()
     return pargs
 
@@ -76,19 +87,19 @@ def frame_creator(openpath, initial_communicator, norestore, unbound):
 def main():
     pargs = console_options_handle()
 
-    if pargs.display:
-        from PyQt5 import QtWidgets
-        app = QtWidgets.QApplication([])
-        wdg = QtWidgets.QLabel("zenframe2")  # TestWidget()
-        wdg.show()
+    # if pargs.display:
+    #     from PyQt5 import QtWidgets
+    #     app = QtWidgets.QApplication([])
+    #     wdg = QtWidgets.QLabel("zenframe2")  # TestWidget()
+    #     wdg.show()
 
-        return app.exec()
+    #     return app.exec()
 
-    frame.invoke(
-        pargs,
-        frame_creator=frame_creator,
-        exec_top_half=top_half,
-        exec_bottom_half=bottom_half)
+    # invoke(
+    #     pargs,
+    #     frame_creator=frame_creator,
+    #     exec_top_half=top_half,
+    #     exec_bottom_half=bottom_half)
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@
 
 import time
 
-import zenframe2.starter as frame
+from zenframe2.starter import invoke
 import zenframe2.argparse
 
 from PyQt5 import QtWidgets
@@ -87,19 +87,19 @@ def frame_creator(openpath, initial_communicator, norestore, unbound):
 def main():
     pargs = console_options_handle()
 
-    if pargs.display:
-        from PyQt5 import QtWidgets
-        app = QtWidgets.QApplication([])
-        wdg = QtWidgets.QLabel("zenframe2")  # TestWidget()
-        wdg.show()
+    # if pargs.display:
+    #     from PyQt5 import QtWidgets
+    #     app = QtWidgets.QApplication([])
+    #     wdg = QtWidgets.QLabel("zenframe2")  # TestWidget()
+    #     wdg.show()
 
-        return app.exec()
+    #     return app.exec()
 
-    frame.invoke(
-        pargs,
-        frame_creator=frame_creator,
-        exec_top_half=top_half,
-        exec_bottom_half=bottom_half)
+    # invoke(
+    #     pargs,
+    #     frame_creator=frame_creator,
+    #     exec_top_half=top_half,
+    #     exec_bottom_half=bottom_half)
 
 
 if __name__ == "__main__":
