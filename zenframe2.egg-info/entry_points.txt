@@ -1,0 +1,3 @@
+[console_scripts]
+zenframe2 = zenframe2.__main__:main
+
