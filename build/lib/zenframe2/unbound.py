@@ -17,287 +17,311 @@ from zenframe2.configuration import Configuration
 from zenframe2.finisher import invoke_destructors
 from zenframe2.animate import AnimateThread
 
-COMMUNICATOR = None
-RETRANSLER = None
-PRESCALE_SIZE = None
-BOTTOM_HALF = None
-UNBOUND_MODE = False
-NOSHOW_MODE = False
 
-# TEST
-THREAD_MODE = False
-BOTTOM_HALF_TEST = None
-
-if Configuration.FILTER_QT_WARNINGS:
-    QtCore.QLoggingCategory.setFilterRules('qt.qpa.xcb=false')
+def start_thread_worker(*args, **kwargs):
+    pass
 
 
-def start_unbounded_worker(application_name):
+def start_unbounded_worker(application_name="zenframe2"):
     interpreter = sys.executable
-
-    cmd = f'{interpreter} -m {application_name} --unbound --sleeped'
+    cmd = f'{interpreter} -m {application_name} --unbound --connect-to=10013'
 
     subproc = None
     try:
-        subproc = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stdin=subprocess.PIPE,
-                                   close_fds=True)
+        subproc = subprocess.Popen(cmd.split(), close_fds=True)
 
     except OSError as ex:
         print("Warn: subprocess.Popen finished with exception", ex)
         raise ex
 
-    stdout = io.TextIOWrapper(subproc.stdout, line_buffering=True)
-    stdin = io.TextIOWrapper(subproc.stdin, line_buffering=True)
+    #stdout = io.TextIOWrapper(subproc.stdout, line_buffering=True)
+    #stdin = io.TextIOWrapper(subproc.stdin, line_buffering=True)
+    #communicator = Communicator(ifile=stdout, ofile=stdin)
+    #client = Client(communicator=communicator, subprocess=subproc)
 
-    communicator = Communicator(ifile=stdout, ofile=stdin)
-    client = Client(communicator=communicator, subprocess=subproc)
+    return None
 
-    return client
+# COMMUNICATOR = None
+# RETRANSLER = None
+# PRESCALE_SIZE = None
+# BOTTOM_HALF = None
+# UNBOUND_MODE = False
+# NOSHOW_MODE = False
+
+# # TEST
+# THREAD_MODE = False
+# BOTTOM_HALF_TEST = None
 
+# if Configuration.FILTER_QT_WARNINGS:
+#     QtCore.QLoggingCategory.setFilterRules('qt.qpa.xcb=false')
 
-def unbound_worker_top_half(top_half, bottom_half):
-    global COMMUNICATOR, PRESCALE_SIZE, RETRANSLER
-    global BOTTOM_HALF, UNBOUND_MODE
 
-    BOTTOM_HALF = bottom_half
-    UNBOUND_MODE = True
+# def start_unbounded_worker(application_name):
+#     interpreter = sys.executable
 
-    QAPP = QtWidgets.QApplication.instance()
-    if QAPP is None:
-        QAPP = QtWidgets.QApplication([])
+#     cmd = f'{interpreter} -m {application_name} --unbound --sleeped'
 
-    # Переопределяем дескрипторы, чтобы стандартный поток вывода пошёл
-    # через ретранслятор. Теперь все консольные сообщения будуут обвешиваться
-    # тегами и поступать на коммуникатор.
-    RETRANSLER = ConsoleRetransler(sys.stdout)
-    RETRANSLER.start_listen()
+#     subproc = None
+#     try:
+#         subproc = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stdin=subprocess.PIPE,
+#                                    close_fds=True)
 
-    # Коммуникатор будет слать сообщения на скрытый файл,
-    # тоесть, на истинный stdout
-    COMMUNICATOR = Communicator(
-        ifile=sys.stdin, ofile=RETRANSLER.new_file)
+#     except OSError as ex:
+#         print("Warn: subprocess.Popen finished with exception", ex)
+#         raise ex
 
-    # Показываем ретранслятору его коммуникатор.
-    RETRANSLER.set_communicator(COMMUNICATOR)
+#     stdout = io.TextIOWrapper(subproc.stdout, line_buffering=True)
+#     stdin = io.TextIOWrapper(subproc.stdin, line_buffering=True)
 
-    if True:  # Sleeped
-        # Спящий процесс оптимизирует время загрузки скрипта.
-        # этот процесс повисает в цикле чтения и дожидается,
-        # пока ему не передадут задание на выполнение.
-        # оптимизация достигается за счёт предварительной загрузки библиотек.
-        try:
-            data0 = COMMUNICATOR.simple_read()
-            if Configuration.COMMUNICATOR_TRACE:
-                print_to_stderr("slep", data0)
+#     communicator = Communicator(ifile=stdout, ofile=stdin)
+#     client = Client(communicator=communicator, subprocess=subproc)
 
-            data1 = COMMUNICATOR.simple_read()
-            if Configuration.COMMUNICATOR_TRACE:
-                print_to_stderr("slep", data1)
+#     return client
 
-            dct0 = json.loads(data0)  # set_oposite_pid
-            dct1 = json.loads(data1)  # unwait
-        except Exception as ex:
-            print_to_stderr("sleeped thread finished with exception")
-            print_to_stderr(ex)
-            sys.exit()
 
-        COMMUNICATOR.declared_opposite_pid = int(dct0["data"])
-        path = dct1["path"]
+# def unbound_worker_top_half(top_half, bottom_half):
+#     global COMMUNICATOR, PRESCALE_SIZE, RETRANSLER
+#     global BOTTOM_HALF, UNBOUND_MODE
 
-    COMMUNICATOR.oposite_clossed.connect(
-        QtWidgets.QApplication.instance().quit)
+#     BOTTOM_HALF = bottom_half
+#     UNBOUND_MODE = True
 
-    top_half(COMMUNICATOR)
+#     QAPP = QtWidgets.QApplication.instance()
+#     if QAPP is None:
+#         QAPP = QtWidgets.QApplication([])
 
-    COMMUNICATOR.start_listen()
+#     # Переопределяем дескрипторы, чтобы стандартный поток вывода пошёл
+#     # через ретранслятор. Теперь все консольные сообщения будуут обвешиваться
+#     # тегами и поступать на коммуникатор.
+#     RETRANSLER = ConsoleRetransler(sys.stdout)
+#     RETRANSLER.start_listen()
 
-    # Меняем директорию, чтобы скрипт мог подключать зависимые модули.
-    path = os.path.abspath(path)
-    directory = os.path.dirname(os.path.abspath(path))
-    os.chdir(directory)
-    sys.path.append(directory)
+#     # Коммуникатор будет слать сообщения на скрытый файл,
+#     # тоесть, на истинный stdout
+#     COMMUNICATOR = Communicator(
+#         ifile=sys.stdin, ofile=RETRANSLER.new_file)
 
-    # Совершив подготовительные процедуры, запускаем скрипт.
-    try:
-        runpy.run_path(path, run_name="__main__")
-    except Exception as ex:
-        tb = traceback.format_exc()
-        COMMUNICATOR.send({"cmd": "except", "path": path,
-                           "header": repr(ex), "tb": str(tb)})
+#     # Показываем ретранслятору его коммуникатор.
+#     RETRANSLER.set_communicator(COMMUNICATOR)
 
+#     if True:  # Sleeped
+#         # Спящий процесс оптимизирует время загрузки скрипта.
+#         # этот процесс повисает в цикле чтения и дожидается,
+#         # пока ему не передадут задание на выполнение.
+#         # оптимизация достигается за счёт предварительной загрузки библиотек.
+#         try:
+#             data0 = COMMUNICATOR.simple_read()
+#             if Configuration.COMMUNICATOR_TRACE:
+#                 print_to_stderr("slep", data0)
 
-def unbound_worker_bottom_half(*args, **kwargs):
-    """Вызывается из showapi"""
+#             data1 = COMMUNICATOR.simple_read()
+#             if Configuration.COMMUNICATOR_TRACE:
+#                 print_to_stderr("slep", data1)
 
-    widget = BOTTOM_HALF(COMMUNICATOR, *args, **kwargs)
+#             dct0 = json.loads(data0)  # set_oposite_pid
+#             dct1 = json.loads(data1)  # unwait
+#         except Exception as ex:
+#             print_to_stderr("sleeped thread finished with exception")
+#             print_to_stderr(ex)
+#             sys.exit()
 
-    if THREAD_MODE:
-        return worker_thread_mode_impl(widget)
+#         COMMUNICATOR.declared_opposite_pid = int(dct0["data"])
+#         path = dct1["path"]
 
-    COMMUNICATOR.send({
-        "cmd": "bindwin",
-        "id": int(widget.winId()),
-        "pid": os.getpid(),
-    })
+#     COMMUNICATOR.oposite_clossed.connect(
+#         QtWidgets.QApplication.instance().quit)
 
-    widget.window().setWindowFlags(QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
-    widget.show()
-    time.sleep(0.05)
+#     top_half(COMMUNICATOR)
 
-    timer = QtCore.QTimer()
-    timer.start(int(Configuration.TIMER_PULSE * 1000))
-    timer.timeout.connect(lambda: None)
+#     COMMUNICATOR.start_listen()
 
-    AnimateThread.start_all_threads()
-    QtWidgets.QApplication.instance().exec()
+#     # Меняем директорию, чтобы скрипт мог подключать зависимые модули.
+#     path = os.path.abspath(path)
+#     directory = os.path.dirname(os.path.abspath(path))
+#     os.chdir(directory)
+#     sys.path.append(directory)
 
+#     # Совершив подготовительные процедуры, запускаем скрипт.
+#     try:
+#         runpy.run_path(path, run_name="__main__")
+#     except Exception as ex:
+#         tb = traceback.format_exc()
+#         COMMUNICATOR.send({"cmd": "except", "path": path,
+#                            "header": repr(ex), "tb": str(tb)})
 
-def is_unbound_mode():
-    return UNBOUND_MODE
 
+# def unbound_worker_bottom_half(*args, **kwargs):
+#     """Вызывается из showapi"""
 
-def start_unbounded_frame(path, application_name):
-    interpreter = sys.executable
+#     widget = BOTTOM_HALF(COMMUNICATOR, *args, **kwargs)
 
-    cmd = f'{interpreter} -m {application_name} "{path}" --frame'
+#     if THREAD_MODE:
+#         return worker_thread_mode_impl(widget)
 
-    subproc = None
-    try:
-        subproc = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stdin=subprocess.PIPE,
-                                   close_fds=True)
-    except OSError as ex:
-        print("Warn: subprocess.Popen finished with exception", ex)
-        raise ex
+#     COMMUNICATOR.send({
+#         "cmd": "bindwin",
+#         "id": int(widget.winId()),
+#         "pid": os.getpid(),
+#     })
 
-    stdout = io.TextIOWrapper(subproc.stdout, line_buffering=True)
-    stdin = io.TextIOWrapper(subproc.stdin, line_buffering=True)
+#     widget.window().setWindowFlags(QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
+#     widget.show()
+#     time.sleep(0.05)
 
-    communicator = Communicator(ifile=stdout, ofile=stdin)
-    communicator.subproc = subproc
+#     timer = QtCore.QTimer()
+#     timer.start(int(Configuration.TIMER_PULSE * 1000))
+#     timer.timeout.connect(lambda: None)
 
-    return communicator
+#     AnimateThread.start_all_threads()
+#     QtWidgets.QApplication.instance().exec()
 
 
-def unbound_frame_summon(widget_creator, application_name, *args, **kwargs):
-    QAPP = QtWidgets.QApplication.instance()
-    if QAPP is None:
-        QAPP = QtWidgets.QApplication([])
+# def is_unbound_mode():
+#     return UNBOUND_MODE
 
-    CONSOLE_FILTER = ConsoleRetransler(sys.stdout, without_wrap=True)
-    CONSOLE_FILTER.start_listen()
 
-    communicator = start_unbounded_frame(sys.argv[0], application_name)
+# def start_unbounded_frame(path, application_name):
+#     interpreter = sys.executable
 
-    time.sleep(3)
+#     cmd = f'{interpreter} -m {application_name} "{path}" --frame'
 
-    widget = widget_creator(communicator, *args, **kwargs)
-    widget.window().setWindowFlags(QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
+#     subproc = None
+#     try:
+#         subproc = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stdin=subprocess.PIPE,
+#                                    close_fds=True)
+#     except OSError as ex:
+#         print("Warn: subprocess.Popen finished with exception", ex)
+#         raise ex
 
-    communicator.oposite_clossed.connect(
-        QtWidgets.QApplication.instance().quit)
-    communicator.start_listen()
+#     stdout = io.TextIOWrapper(subproc.stdout, line_buffering=True)
+#     stdin = io.TextIOWrapper(subproc.stdin, line_buffering=True)
 
-    # if BIND_MODE:
-    communicator.send({
-        "cmd": "bindwin",
-        "id": int(widget.winId()),
-        "pid": os.getpid(),
-    })
-    widget.show()
+#     communicator = Communicator(ifile=stdout, ofile=stdin)
+#     communicator.subproc = subproc
 
-    time.sleep(0.05)
-    timer = QtCore.QTimer()
-    timer.start(500)  # You may change this if you wish.
-    timer.timeout.connect(lambda: None)  # Let the interpreter run each 500 ms.
+#     return communicator
 
-    def finished_listener(data):
-        if data["cmd"] == "main_finished":
-            invoke_destructors()
-            os.wait()
 
-            QtWidgets.QApplication.quit()
+# def unbound_frame_summon(widget_creator, application_name, *args, **kwargs):
+#     QAPP = QtWidgets.QApplication.instance()
+#     if QAPP is None:
+#         QAPP = QtWidgets.QApplication([])
 
-    communicator.newdata.connect(finished_listener)
+#     CONSOLE_FILTER = ConsoleRetransler(sys.stdout, without_wrap=True)
+#     CONSOLE_FILTER.start_listen()
 
-    timer = QtCore.QTimer()
-    timer.start(500)  # You may change this if you wish.
+#     communicator = start_unbounded_frame(sys.argv[0], application_name)
 
-    def unsleeper():
-        try:
-            None
-            pass
-        except:
-            os._exit(0)
+#     time.sleep(3)
 
-    timer.timeout.connect(unsleeper)  # Let the interpreter run each 500 ms.
+#     widget = widget_creator(communicator, *args, **kwargs)
+#     widget.window().setWindowFlags(QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
 
-    AnimateThread.start_all_threads()
-    QtWidgets.QApplication.instance().exec()
+#     communicator.oposite_clossed.connect(
+#         QtWidgets.QApplication.instance().quit)
+#     communicator.start_listen()
 
+#     # if BIND_MODE:
+#     communicator.send({
+#         "cmd": "bindwin",
+#         "id": int(widget.winId()),
+#         "pid": os.getpid(),
+#     })
+#     widget.show()
 
-# TEST
-def test_bottom_half_2(*args, **kwargs):
-    import zenframe2.mainwindow
-    wdg = QtWidgets.QLabel("ThreadMode!!!!")
-    zenframe2.mainwindow.instance().bind_thread_widget(wdg)
+#     time.sleep(0.05)
+#     timer = QtCore.QTimer()
+#     timer.start(500)  # You may change this if you wish.
+#     timer.timeout.connect(lambda: None)  # Let the interpreter run each 500 ms.
 
+#     def finished_listener(data):
+#         if data["cmd"] == "main_finished":
+#             invoke_destructors()
+#             os.wait()
 
-def test_bottom_half(*args, **kwargs):
-    print("test_bottom_half!!!")
+#             QtWidgets.QApplication.quit()
 
+#     communicator.newdata.connect(finished_listener)
 
-class ThreadExecutor(QtCore.QThread):
-    def __init__(self, w, r, openpath):
-        super().__init__()
-        self.w_fd = w
-        self.r_fd = r
-        self.w = io.TextIOWrapper(
-            os.fdopen(self.w_fd, "wb"), line_buffering=True)
-        self.r = io.TextIOWrapper(
-            os.fdopen(self.r_fd, "rb"), line_buffering=True)
-        self.openpath = openpath
+#     timer = QtCore.QTimer()
+#     timer.start(500)  # You may change this if you wish.
 
-    def run(self):
-        print("run")
-        self.communicator = Communicator(self.r, self.w)
-        self.communicator.start_listen()
+#     def unsleeper():
+#         try:
+#             None
+#             pass
+#         except:
+#             os._exit(0)
 
-        global COMMUNICATOR
-        COMMUNICATOR = self.communicator
+#     timer.timeout.connect(unsleeper)  # Let the interpreter run each 500 ms.
 
-        global BOTTOM_HALF, THREAD_MODE
-        BOTTOM_HALF = test_bottom_half
-        THREAD_MODE = True
+#     AnimateThread.start_all_threads()
+#     QtWidgets.QApplication.instance().exec()
 
-        try:
-            runpy.run_path(self.openpath, run_name="__main__")
-        except Exception as ex:
-            tb = traceback.format_exc()
-            self.communicator.send({"cmd": "except", "path": self.openpath,
-                                    "header": repr(ex), "tb": str(tb)})
 
+# # TEST
+# def test_bottom_half_2(*args, **kwargs):
+#     import zenframe2.mainwindow
+#     wdg = QtWidgets.QLabel("ThreadMode!!!!")
+#     zenframe2.mainwindow.instance().bind_thread_widget(wdg)
 
-def worker_thread_mode_impl(wdg):
-    import zenframe2.mainwindow
-    global BOTTOM_HALF_TEST
-    BOTTOM_HALF_TEST = test_bottom_half_2
-    QtCore.QMetaObject.invokeMethod(
-        zenframe2.mainwindow.instance(), "hello", QtCore.Qt.QueuedConnection)
-    print("worker_thread_mode_impl")
 
-#    dispatchToMainThread(test_bottom_half_2)
+# def test_bottom_half(*args, **kwargs):
+#     print("test_bottom_half!!!")
 
 
-def start_thread_worker(openpath):
-    main_r, thread_w = os.pipe()
-    thread_r, main_w = os.pipe()
+# class ThreadExecutor(QtCore.QThread):
+#     def __init__(self, w, r, openpath):
+#         super().__init__()
+#         self.w_fd = w
+#         self.r_fd = r
+#         self.w = io.TextIOWrapper(
+#             os.fdopen(self.w_fd, "wb"), line_buffering=True)
+#         self.r = io.TextIOWrapper(
+#             os.fdopen(self.r_fd, "rb"), line_buffering=True)
+#         self.openpath = openpath
 
-    thr = ThreadExecutor(w=thread_w, r=thread_r, openpath=openpath)
+#     def run(self):
+#         print("run")
+#         self.communicator = Communicator(self.r, self.w)
+#         self.communicator.start_listen()
 
-    w = io.TextIOWrapper(os.fdopen(main_w, "wb"), line_buffering=True)
-    r = io.TextIOWrapper(os.fdopen(main_r, "rb"), line_buffering=True)
+#         global COMMUNICATOR
+#         COMMUNICATOR = self.communicator
 
-    communicator = Communicator(r, w)
+#         global BOTTOM_HALF, THREAD_MODE
+#         BOTTOM_HALF = test_bottom_half
+#         THREAD_MODE = True
 
-    thr.start()
-    return Client(communicator, thread=thr)
+#         try:
+#             runpy.run_path(self.openpath, run_name="__main__")
+#         except Exception as ex:
+#             tb = traceback.format_exc()
+#             self.communicator.send({"cmd": "except", "path": self.openpath,
+#                                     "header": repr(ex), "tb": str(tb)})
+
+
+# def worker_thread_mode_impl(wdg):
+#     import zenframe2.mainwindow
+#     global BOTTOM_HALF_TEST
+#     BOTTOM_HALF_TEST = test_bottom_half_2
+#     QtCore.QMetaObject.invokeMethod(
+#         zenframe2.mainwindow.instance(), "hello", QtCore.Qt.QueuedConnection)
+#     print("worker_thread_mode_impl")
+
+# #    dispatchToMainThread(test_bottom_half_2)
+
+
+# def start_thread_worker(openpath):
+#     main_r, thread_w = os.pipe()
+#     thread_r, main_w = os.pipe()
+
+#     thr = ThreadExecutor(w=thread_w, r=thread_r, openpath=openpath)
+
+#     w = io.TextIOWrapper(os.fdopen(main_w, "wb"), line_buffering=True)
+#     r = io.TextIOWrapper(os.fdopen(main_r, "rb"), line_buffering=True)
+
+#     communicator = Communicator(r, w)
+
+#     thr.start()
+#     return Client(communicator, thread=thr)

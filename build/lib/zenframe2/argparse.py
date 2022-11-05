@@ -5,7 +5,7 @@ from zenframe2.configuration import Configuration
 
 
 class ArgumentParser(argparse.ArgumentParser):
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         super().__init__()
 
         self.add_argument("--unbound", action="store_true")

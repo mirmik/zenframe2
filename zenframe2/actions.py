@@ -8,7 +8,7 @@ from zenframe2.settings import BaseSettings
 import zenframe2.util
 
 
-class zenframe2ActionsMixin:
+class ZenFrameActionsMixin:
     def create_action(self, text, action, tip, shortcut=None, checkbox=False, defcheck=False):
         act = QAction(self.tr(text), self)
         act.setStatusTip(self.tr(tip))

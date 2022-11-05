@@ -9,7 +9,7 @@ import sys
 class ScreenSaverWidget(QWidget):
     def __init__(self, text=None, color=QColor(137, 40, 151)):
         if text is None:
-            text = "Loading... please wait."
+            text = ""
 
         self.text = text
         self.subtext = ["", "", ""]

@@ -13,7 +13,7 @@ from zenframe2.configuration import Configuration
 from zenframe2.util import print_to_stderr
 
 from zenframe2.settings import BaseSettings
-from zenframe2.actions import zenframe2ActionsMixin
+from zenframe2.actions import ZenFrameActionsMixin
 from zenframe2.finisher import invoke_destructors, terminate_all_subprocess, remove_destructor
 from zenframe2.unbound import start_unbounded_worker, start_thread_worker
 
@@ -28,7 +28,7 @@ def instance():
     return MAINWINDOW
 
 
-class zenframe2(QtWidgets.QMainWindow, zenframe2ActionsMixin):
+class ZenFrame(QtWidgets.QMainWindow, ZenFrameActionsMixin):
     """Класс реализует логику общения с подчинёнными процессами,
     управление окнами, слежение за изменениями."""
 
@@ -36,7 +36,8 @@ class zenframe2(QtWidgets.QMainWindow, zenframe2ActionsMixin):
                  title,
                  application_name,
                  initial_communicator=None,
-                 restore_gui=True
+                 restore_gui=True,
+                 use_sleeped_process=False
                  ):
         global MAINWINDOW
         MAINWINDOW = self
@@ -48,7 +49,7 @@ class zenframe2(QtWidgets.QMainWindow, zenframe2ActionsMixin):
 
         # MODES
         self.use_threads = False
-        self.use_sleeped_process = True
+        self.use_sleeped_process = use_sleeped_process
 
         # Init variables
         self._openlock = QtCore.QMutex(QtCore.QMutex.Recursive)
@@ -283,22 +284,26 @@ class zenframe2(QtWidgets.QMainWindow, zenframe2ActionsMixin):
         self.notifier.add_target(openpath)
 
         client = self.start_new_client(openpath)
-        oldclient = self._current_client
+        # if client is None:
+        #     self._openlock.unlock()
+        #     return
 
-        self._current_client = client
-        self._clients[client.pid()] = client
+        # oldclient = self._current_client
 
-        self._current_client.communicator.bind_handler(self.message_handler)
-        self._current_client.communicator.start_listen()
+        # self._current_client = client
+        # self._clients[client.pid()] = client
 
-        self.enable_display_changed_mode()
+        # self._current_client.communicator.bind_handler(self.message_handler)
+        # self._current_client.communicator.start_listen()
 
-        if oldclient:
-            oldclient.terminate_only()
+        # self.enable_display_changed_mode()
 
-        self.console.clear()
-        self.setWindowTitle(self._current_opened)
-        self.openStartEvent(openpath)
+        # if oldclient:
+        #     oldclient.terminate_only()
+
+        # self.console.clear()
+        # self.setWindowTitle(self._current_opened)
+        # self.openStartEvent(openpath)
         self._openlock.unlock()
 
     def start_new_client(self, openpath):
@@ -311,12 +316,15 @@ class zenframe2(QtWidgets.QMainWindow, zenframe2ActionsMixin):
         else:
             client = self.spawn_process(self._application_name)
 
-        client.communicator.send({
-            "cmd": "unsleep",
-            "path": openpath
-        })
+        # if client is not None:
+        #     client.communicator.send({
+        #         "cmd": "unsleep",
+        #         "path": openpath
+        #     })
+        # else:
+        #     print("[Warn] Client is not started")
 
-        return client
+        # return client
 
     def internal_key_pressed_raw(self, key, modifiers, text):
         self.activateWindow()

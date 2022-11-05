@@ -5,7 +5,7 @@ zenframe2/__init__.py
 zenframe2/__main__.py
 zenframe2/actions.py
 zenframe2/animate.py
-zenframe2/argparse.py
+zenframe2/application.py
 zenframe2/client.py
 zenframe2/communicator.py
 zenframe2/configuration.py

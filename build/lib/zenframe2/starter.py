@@ -6,7 +6,8 @@ import os
 
 import zenframe2.util
 from zenframe2.finisher import terminate_all_subprocess, invoke_destructors, setup_interrupt_handlers
-from zenframe2.unbound import unbound_worker_top_half
+#from zenframe2.unbound import unbound_worker_top_half
+
 from zenframe2.configuration import Configuration
 from zenframe2.retransler import ConsoleRetransler
 from zenframe2.communicator import Communicator
